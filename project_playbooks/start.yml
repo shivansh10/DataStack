@@ -1,0 +1,34 @@
+---
+ - hosts: localhost
+   gather_facts: no
+   vars:
+     instance_id: "{{ instance_id }}"
+     region: "{{ region }}"
+     ac: 
+     acs: 
+   tasks:
+    - name: Starting the instance
+      ec2:
+        aws_access_key: "{{ ac }}"
+        aws_secret_key: "{{ acs }}" 
+        instance_ids: '{{ instance_id }}'
+        region: '{{ region }}'
+        state: running
+        wait: True
+      register: ec2
+
+
+    - name: Writing public ip
+      local_action: copy content={{ item.public_ip }} dest=/etc/ansible/project_playbooks/newpublicip.txt
+      with_items: "{{ ec2.instances }}" 
+
+    - name: Writing private ip
+      local_action: copy content={{ item.private_ip }} dest=/etc/ansible/project_playbooks/newprivateip.txt
+      with_items: "{{ ec2.instances }}"
+
+    - name: Writing Domain name
+      local_action: copy content={{ item.public_dns_name }} dest=/etc/ansible/project_playbooks/newpublicdns.txt
+      with_items: "{{ ec2.instances }}"
+
+
+

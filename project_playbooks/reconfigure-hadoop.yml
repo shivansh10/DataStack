@@ -1,0 +1,95 @@
+#Run your Hadoop cluster within 5 MINUTES...instead of manually (40 minutes)
+# Points to remember - 
+#   1. Run this script from the Namenode machine.
+#   2. Specify the namenodeip in DATANODE SECTION and NAMENODE SECTION.
+#   3. After running this script you have to :
+#       a. Manually enter the IP and hostname of all DATANODES in  /etc/hosts  in NAMENODE.              (working on this automation)
+#       b. Allow the firewall in AWS in all machines. (Port Num. 50070,50010,and the one you specify)
+#   4. Now you can start the NameNode service  -    "hadoop-daemon.sh start namenode"
+#       
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<-----------------------------------DATANODE SECTION --------------------------------------------------------->>>>>>>>>>>>>>>>>>>>>
+
+# ---- Configuring DATA NODES and Name Node ----
+---
+ - hosts: all    # Group name of DATANODES  .. (Configure this in  /etc/ansible/hosts)
+   become: yes
+   remote_user: ec2-user
+   gather_facts: no
+   vars:
+     username: ec2-user
+     namenodeip: "{{ publicdns }}"
+     datanodename: mydatanode
+     namenodename: mynamenode
+     namenodehostname: "{{ hostname }}"
+     private_ip: "{{ privateip }}"
+   tasks:
+    - name: Configuring DataNode and NameNode "core-site.xml "...
+      blockinfile: 
+       path: /home/{{username}}/hadoop-2.7.3/etc/hadoop/core-site.xml
+       backup: yes 
+       insertafter: "<configuration>" 
+       block: | 
+        <property>
+        <name>fs.defaultFS</name> 
+        <value>hdfs://{{namenodeip}}</value> 
+        </property> 
+
+    
+# *************************************** entry in hosts file *****************
+
+    - name: Configuring hosts file..
+      become: yes
+      blockinfile:
+       path: /etc/hosts
+       block: |
+        {{private_ip}}  {{namenodehostname}}
+
+    - name: Configuring Host Names .........
+      command: hostnamectl set-hostname {{namenodehostname}}
+    
+
+# **********************************CONFIGURING YARN **************
+      
+    - name: Configuring yarn-site.xml
+      blockinfile:
+       path: /home/{{username}}/hadoop-2.7.3/etc/hadoop/yarn-site.xml
+       insertafter: "<configuration>"       
+       block: |
+        <property>
+        <name>yarn.resourcemanager.resource-tracker.address</name>
+        <value>{{namenodehostname}}:8025</value>
+        </property>
+
+        <property>
+        <name>yarn.resourcemanager.scheduler.address</name>
+        <value>{{namenodehostname}}:8030</value>
+        </property>
+ 
+        <property>
+        <name>yarn.resourcemanager.address</name>
+        <value>{{namenodehostname}}:8032</value>
+        </property>
+        
+        <property>
+        <name>yarn.nodemanager.aux-services</name>
+        <value>mapreduce_shuffle</value>
+        </property>
+
+ - hosts: all
+   remote_user: ec2-user
+   tasks:
+    - name: Starting namenode..
+      become: no
+      shell: hadoop-daemon.sh start namenode  
+
+    - name: Starting datanode
+      become: no
+      shell: hadoop-daemon.sh start datanode
+
+    - name: Starting Resource manager
+      become: no
+      shell: yarn-daemon.sh start resourcemanager
+
+    - name: Starting Node manager
+      become: no
+      shell: yarn-daemon.sh start nodemanager

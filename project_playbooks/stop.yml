@@ -1,0 +1,17 @@
+---
+ - hosts: localhost
+   gather_facts: no
+   vars:
+     instance_id: "{{ instance_id }}"
+     region: "{{ region }}"
+     ac: 
+     acs: 
+   tasks:
+    - name: Stopping the instance
+      ec2:
+        aws_access_key: "{{ ac }}"
+        aws_secret_key: "{{ acs }}" 
+        instance_ids: '{{ instance_id }}'
+        region: '{{ region }}'
+        state: stopped
+        wait: True

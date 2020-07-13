@@ -1,0 +1,22 @@
+---
+ - hosts: all
+   remote_user: ec2-user  
+   sudo: yes
+   gather_facts: no
+   tasks:
+    - name: Starting notebook
+      remote_user: ec2-user
+      sudo: no
+      shell: (jupyter-notebook --no-browser --ip=0.0.0.0 --port=8888 &> /dev/null &)
+      async: 1
+      args:
+       executable: /bin/bash
+
+    - name: getting ip
+      sudo: no
+      shell: jupyter-notebook list | sed 1d | awk '{print $1}' | awk -F[?:] '{print $4}'
+      register: result
+
+    - name: Copying output
+      local_action: copy content={{result.stdout}} dest=/etc/ansible/project_playbooks/jupyterip.txt
+       

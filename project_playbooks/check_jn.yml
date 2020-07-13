@@ -1,0 +1,12 @@
+---
+ - hosts: all
+   remote_user: ec2-user
+   tasks:   
+    - name: getting ip
+      sudo: no
+      shell: jupyter-notebook list | sed 1d | awk '{print $1}' | awk -F[?:] '{print $4}'
+      register: result
+
+    - name: Copying output
+      local_action: copy content={{result.stdout}} dest=/etc/ansible/project_playbooks/checkjn.txt
+
